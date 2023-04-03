@@ -13,7 +13,12 @@ use rocket::{
 };
 
 use crate::diesel::RunQueryDsl;
+use rocket_okapi::okapi::schemars;
+use rocket_okapi::okapi::schemars::JsonSchema;
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
 
+#[openapi(tag = "Bikes")]
 #[get("/bikes?<page>&<limit>")]
 pub async fn bikes_list_handler(
     page: Option<usize>,
@@ -40,6 +45,7 @@ pub async fn bikes_list_handler(
     Ok(Json(response_json))
 }
 
+#[openapi(tag = "Bikes")]
 #[options("/bikes/<comp>/<bike_price>")]
 pub async fn bikes_filter_handler(
     comp: String,
@@ -100,6 +106,8 @@ pub fn wheelsize_validation(b_wheelsize: f64) -> bool {
     }
     valid
 }
+
+#[openapi(tag = "Bikes")]
 #[post("/bikes", data = "<body>")]
 pub async fn create_bike_handler(
     mut body: Json<Bike>,
@@ -176,6 +184,8 @@ pub fn get_riders_for_bike(bikeid: String) -> Vec<Rider> {
         .expect("Error loading riders");
     result.clone()
 }
+
+#[openapi(tag = "Bikes")]
 #[get("/bikes/<bike_id>")]
 pub async fn get_bike_handler(
     bike_id: String,
@@ -213,7 +223,7 @@ pub async fn get_bike_handler(
 }
 
 
-
+#[openapi(tag = "Bikes")]
 #[patch("/bikes/<bike_id>", data = "<body>")]
 pub async fn update_bike_handler(
     bike_id: String,
@@ -328,6 +338,8 @@ pub fn delete_bike_dependencies(bikeid: String,data: &State<AppState>) -> Result
 
 
 }
+
+#[openapi(tag = "Bikes")]
 #[delete("/bikes/<bike_id>")]
 pub async fn delete_bike_handler(
     bike_id: String,
@@ -370,7 +382,7 @@ pub async fn delete_bike_handler(
 }
 
 
-
+#[openapi(tag = "Bikes")]
 #[post("/moreBikes" , data = "<body>")]
 pub async fn create_more_bikes_handler(
     body: Json<Vec<Bike>>,

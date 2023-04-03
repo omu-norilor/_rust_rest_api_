@@ -14,8 +14,13 @@ use rocket::{
 };
 
 use crate::diesel::RunQueryDsl;
-use crate::schema::events::dsl::*;
+use rocket_okapi::okapi::schemars;
+use rocket_okapi::okapi::schemars::JsonSchema;
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
 
+
+#[openapi(tag = "Events")]
 #[get("/events?<page>&<limit>")]
 pub async fn events_list_handler(
     page: Option<usize>,
@@ -42,7 +47,7 @@ pub async fn events_list_handler(
     Ok(Json(response_json))
 }
 
-
+#[openapi(tag = "Events")]
 #[post("/events", data = "<body>")]
 pub async fn create_event_handler(
     mut body: Json<Event>,
@@ -108,6 +113,8 @@ pub fn get_riders_for_event(eventid: String) -> Vec<Rider> {
         .expect("Error loading riders");
     result.clone()
 }
+
+#[openapi(tag = "Events")]
 #[get("/events/<event_id>")]
 pub async fn get_event_handler(
     event_id: String,
@@ -145,6 +152,7 @@ pub async fn get_event_handler(
 
 }
 
+#[openapi(tag = "Events")]
 #[patch("/events/<event_id>", data = "<body>")]
 pub async fn update_event_handler(
     event_id: String,
@@ -235,6 +243,7 @@ pub fn delete_event_dependencies(eventid: String) -> Result<usize, diesel::resul
     diesel::delete(eventrider.filter(e_id.eq(rider_id_clone))).execute(connection)
 }
 
+#[openapi(tag = "Events")]
 #[delete("/event/<event_id>")]
 pub async fn delete_event_handler(
     event_id: String,

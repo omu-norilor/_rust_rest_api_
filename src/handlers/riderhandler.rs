@@ -14,9 +14,12 @@ use rocket::{
 };
 
 use crate::diesel::RunQueryDsl;
-use crate::schema::riders::dsl::*;
+use rocket_okapi::okapi::schemars;
+use rocket_okapi::okapi::schemars::JsonSchema;
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
 
-
+#[openapi(tag = "Riders")]
 #[get("/riders?<page>&<limit>")]
 pub async fn riders_list_handler(
     page: Option<usize>,
@@ -65,7 +68,7 @@ pub fn phone_validation( r_phone: String) -> bool{
     valid
 }
 
-
+#[openapi(tag = "Riders")]
 #[post("/riders", data = "<body>")]
 pub async fn create_rider_handler(
     mut body: Json<Rider>,
@@ -162,6 +165,7 @@ pub fn get_bike_for_rider(bikeid: String) -> Option<Bike> {
     result.clone()
 }
 
+#[openapi(tag = "Riders")]
 #[get("/riders/<rider_id>")]
 pub async fn get_rider_handler(
     rider_id: String,
@@ -204,6 +208,7 @@ pub async fn get_rider_handler(
 
 }
 
+#[openapi(tag = "Riders")]
 #[patch("/riders/<rider_id>", data = "<body>")]
 pub async fn update_rider_handler(
     rider_id: String,
@@ -332,7 +337,7 @@ pub fn delete_rider_dependencies(rider_id: String) -> Result<usize, diesel::resu
     diesel::delete(eventrider.filter(r_id.eq(rider_id_clone))).execute(connection)
 }
 
-
+#[openapi(tag = "Riders")]
 #[delete("/riders/<rider_id>")]
 pub async fn delete_rider_handler(
     rider_id: String,
@@ -408,6 +413,7 @@ pub fn get_no_events_for_rider(riderid: String) -> usize {
     result.len()
 }
 
+#[openapi(tag = "Riders")]
 #[get("/riders/mostActive")]
 pub async fn get_most_active_riders_handler(
     data: &State<AppState>,

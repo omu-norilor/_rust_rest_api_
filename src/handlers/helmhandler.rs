@@ -5,7 +5,10 @@ use crate::{
     db::establish_connection,
 };
 
-use crate::schema::helmets::dsl::*;
+use rocket_okapi::okapi::schemars;
+use rocket_okapi::okapi::schemars::JsonSchema;
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
 use diesel::prelude::*;
 use chrono::prelude::*;
 use uuid::Uuid;
@@ -15,7 +18,7 @@ use rocket::{
 };
 
 
-
+#[openapi(tag = "Helmets")]
 #[get("/helmets?<page>&<limit>")]
 pub async fn helmets_list_handler(
     page: Option<usize>,
@@ -43,7 +46,7 @@ pub async fn helmets_list_handler(
     Ok(Json(response_json))
 }
 
-
+#[openapi(tag = "Helmets")]
 #[post("/helmets", data = "<body>")]
 pub async fn create_helmet_handler(
     mut body: Json<Helmet>,
@@ -102,6 +105,7 @@ pub async fn create_helmet_handler(
     Ok(Json(json_response))
 }
 
+#[openapi(tag = "Helmets")]
 #[get("/helmets/<helm_id>")]
 pub async fn get_helmet_handler(
     helm_id: String,
@@ -137,6 +141,7 @@ pub async fn get_helmet_handler(
 
 }
 
+#[openapi(tag = "Helmets")]
 #[patch("/helmets/<helm_id>", data = "<body>")]
 pub async fn update_helmet_handler(
     helm_id: String,
@@ -245,6 +250,7 @@ pub fn delete_helmet_dependencies(helmid: String,data: &State<AppState>) -> Resu
     diesel::delete(riders.filter(helmet_id.eq(helm_id_clone))).execute(connection)
 }
 
+#[openapi(tag = "Helmets")]
 #[delete("/helmet/<helm_id>")]
 pub async fn delete_helmet_handler(
     helm_id: String,
@@ -317,6 +323,7 @@ pub fn get_no_riders_for_helmet(helmid: String) -> usize {
     result.len()
 }
 
+#[openapi(tag = "Helmets")]
 #[get("/helmets/mostUsed")]
 pub async fn get_most_used_helmets_handler(
     data: &State<AppState>,

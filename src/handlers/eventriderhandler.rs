@@ -14,9 +14,13 @@ use rocket::{
 };
 
 use crate::diesel::RunQueryDsl;
-use crate::schema::eventrider::dsl::*;
+use rocket_okapi::okapi::schemars;
+use rocket_okapi::okapi::schemars::JsonSchema;
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
 
 
+#[openapi(tag = "EventRider")]
 #[get("/eventrider/getall?<page>&<limit>")]
 pub async fn eventrider_list_handler(
     page: Option<usize>,
@@ -43,7 +47,7 @@ pub async fn eventrider_list_handler(
     Ok(Json(response_json))
 }
 
-
+#[openapi(tag = "EventRider")]
 #[post("/eventrider", data = "<body>")]
 pub async fn create_eventrider_handler(
     mut body: Json<EventRider>,
@@ -97,6 +101,7 @@ pub async fn create_eventrider_handler(
     Ok(Json(json_response))
 }
 
+#[openapi(tag = "EventRider")]
 #[get("/eventrider/getbyids?<event_id>&<rider_id>")]
 pub async fn get_eventrider_handler(
     event_id: String,
@@ -136,6 +141,7 @@ pub async fn get_eventrider_handler(
 
 }
 
+#[openapi(tag = "EventRider")]
 #[patch("/eventrider?<event_id>&<rider_id>", data = "<body>")]
 pub async fn update_eventrider_handler(
     event_id: String,
@@ -207,6 +213,7 @@ pub fn delete_eventrider_dependencies (
         Ok(1)
     }
 
+#[openapi(tag = "EventRider")]
 #[delete("/eventrider?<event_id>&<rider_id>")]
 pub async fn delete_eventrider_handler(
     event_id: String,

@@ -1,10 +1,15 @@
-
+use chrono::prelude::*;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use crate::schema::{bikes, helmets, riders,events,eventrider};
+use rocket_okapi::okapi::schemars;
+use rocket_okapi::okapi::schemars::JsonSchema;
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
+
 #[allow(non_snake_case)]
-#[derive(Queryable,Insertable,Clone,Serialize, Deserialize, Debug,AsChangeset)]
+#[derive(Queryable, Insertable, Clone, Serialize, Deserialize, Debug, AsChangeset, JsonSchema)]
 #[diesel(table_name = bikes)]
 pub struct Bike {
     pub b_id: String,
@@ -19,7 +24,7 @@ pub struct Bike {
 
 }
 #[allow(non_snake_case)]
-#[derive(Queryable,Insertable,Clone,Serialize, Deserialize, Debug,AsChangeset)]
+#[derive(Queryable,Insertable,Clone,Serialize, Deserialize, Debug,AsChangeset, JsonSchema)]
 #[diesel(table_name = helmets)]
 pub struct Helmet {
     pub h_id: String,
@@ -34,7 +39,7 @@ pub struct Helmet {
 }
 
 #[allow(non_snake_case)]
-#[derive(Queryable, Insertable, Clone, Serialize, Deserialize, Debug,AsChangeset)]
+#[derive(Queryable, Insertable, Clone, Serialize, Deserialize, Debug,AsChangeset, JsonSchema)]
 #[diesel(table_name = riders)]
 pub struct Rider {
     pub r_id: String,
@@ -51,7 +56,7 @@ pub struct Rider {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Clone, Serialize,Queryable, Deserialize, Insertable, AsChangeset)]
+#[derive(Debug, Clone, Serialize,Queryable, Deserialize, Insertable, AsChangeset, JsonSchema)]
 #[diesel(table_name = events)]
 pub struct Event{
     pub e_id: String,
@@ -63,7 +68,7 @@ pub struct Event{
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Clone, Serialize,Queryable, Deserialize, Insertable, AsChangeset)]
+#[derive(Debug, Clone, Serialize,Queryable, Deserialize, Insertable, AsChangeset, JsonSchema)]
 #[diesel(table_name = eventrider)]
 pub struct EventRider{
     pub e_id: String,
@@ -88,7 +93,7 @@ impl AppState {
 }
 
 #[allow(non_snake_case)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, JsonSchema)]
 pub struct UpdateBike {
     pub brand: Option<String>,
     pub model: Option<String>,
@@ -99,7 +104,7 @@ pub struct UpdateBike {
 }
 
 #[allow(non_snake_case)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, JsonSchema)]
 pub struct UpdateHelmet {
     pub brand: Option<String>,
     pub model: Option<String>,
@@ -111,7 +116,7 @@ pub struct UpdateHelmet {
 
 
 #[allow(non_snake_case)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, JsonSchema)]
 pub struct UpdateRider {
     pub helmet_id: Option<String>,
     pub bike_id: Option<String>,
@@ -124,7 +129,7 @@ pub struct UpdateRider {
 }
 
 #[allow(non_snake_case)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, JsonSchema)]
 pub struct UpdateEvent {
     pub e_name: Option<String>,
     pub e_date: Option<NaiveDateTime>,
@@ -133,7 +138,7 @@ pub struct UpdateEvent {
 
 
 #[allow(non_snake_case)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, JsonSchema)]
 pub struct UpdateEventRider {
     pub er_type: Option<String>,
     pub er_specialization: Option<String>,
