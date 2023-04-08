@@ -48,19 +48,19 @@ pub struct GenericResponse {
 pub struct CORS;
 
 #[rocket::async_trait]
-impl rocket::fairing::Fairing for CORS {
+impl Fairing for CORS {
     fn info(&self) -> rocket::fairing::Info {
-        rocket::fairing::Info {
+        Info {
             name: "Attaching CORS headers to responses",
-            kind: rocket::fairing::Kind::Response,
+            kind: Kind::Response,
         }
     }
 
-    async fn on_response<'r>(&self, _request: &'r rocket::Request<'_>, response: &mut rocket::Response<'r>) {
-        response.set_header(rocket::http::Header::new("Access-Control-Allow-Origin", "*"));
-        response.set_header(rocket::http::Header::new("Access-Control-Allow-Methods", "POST, GET"));
-        response.set_header(rocket::http::Header::new("Access-Control-Allow-Headers", "*"));
-        response.set_header(rocket::http::Header::new("Access-Control-Allow-Credentials", "true"));
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Methods", "POST, GET, DELETE"));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
     }
 }
 
@@ -100,7 +100,7 @@ fn rocket() -> _ {
             update_eventrider_handler,
             get_eventrider_handler,
             eventrider_list_handler
-        ]
+        ],
     )
     .mount(
         "/swagger-ui/",

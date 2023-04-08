@@ -19,7 +19,7 @@ use rocket_okapi::settings::UrlObject;
 use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
 
 #[openapi(tag = "Bikes")]
-#[get("/bikes?<page>&<limit>")]
+#[get("/bikes/getall?<page>&<limit>")]
 pub async fn bikes_list_handler(
     page: Option<usize>,
     limit: Option<usize>,
@@ -35,7 +35,7 @@ pub async fn bikes_list_handler(
     
     let mut limit = limit.unwrap_or(10);
     let mut offset = (page.unwrap_or(1) - 1) * limit;
-    let good_bikes: Vec<Bike> = vec.clone().into_iter().skip(offset).take(limit).collect();
+    let good_bikes: Vec<Bike> = vec.clone().into_iter().collect();
     let response_json = BikeListResponse {
         status: "success".to_string(),
         results: good_bikes.len(),
@@ -46,7 +46,7 @@ pub async fn bikes_list_handler(
 }
 
 #[openapi(tag = "Bikes")]
-#[options("/bikes/<comp>/<bike_price>")]
+#[options("/bikes/compare/<comp>/<bike_price>")]
 pub async fn bikes_filter_handler(
     comp: String,
     bike_price: f64,
@@ -108,7 +108,7 @@ pub fn wheelsize_validation(b_wheelsize: f64) -> bool {
 }
 
 #[openapi(tag = "Bikes")]
-#[post("/bikes", data = "<body>")]
+#[post("/bikes/new", data = "<body>")]
 pub async fn create_bike_handler(
     mut body: Json<Bike>,
     data: &State<AppState>,
@@ -186,7 +186,7 @@ pub fn get_riders_for_bike(bikeid: String) -> Vec<Rider> {
 }
 
 #[openapi(tag = "Bikes")]
-#[get("/bikes/<bike_id>")]
+#[get("/bikes/get/<bike_id>")]
 pub async fn get_bike_handler(
     bike_id: String,
     data: &State<AppState>,
@@ -224,7 +224,7 @@ pub async fn get_bike_handler(
 
 
 #[openapi(tag = "Bikes")]
-#[patch("/bikes/<bike_id>", data = "<body>")]
+#[post("/bikes/edit/<bike_id>", data = "<body>")]
 pub async fn update_bike_handler(
     bike_id: String,
     body: Json<UpdateBike>,
@@ -340,7 +340,7 @@ pub fn delete_bike_dependencies(bikeid: String,data: &State<AppState>) -> Result
 }
 
 #[openapi(tag = "Bikes")]
-#[delete("/bikes/<bike_id>")]
+#[post("/bikes/delete/<bike_id>")]
 pub async fn delete_bike_handler(
     bike_id: String,
     data: &State<AppState>,
