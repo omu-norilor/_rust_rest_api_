@@ -68,9 +68,10 @@ impl Fairing for CORS {
 fn rocket() -> _ {
     let app_data = model::AppState::init();
     rocket::build().attach(CORS).manage(app_data).mount(
-        "/", 
+        "/api/", 
         openapi_get_routes![
             index_handler,
+            bikes_count_handler,
             bikes_list_handler,
             create_bike_handler,
             get_bike_handler,

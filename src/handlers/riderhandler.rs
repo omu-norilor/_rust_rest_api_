@@ -20,7 +20,7 @@ use rocket_okapi::settings::UrlObject;
 use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
 
 #[openapi(tag = "Riders")]
-#[get("/riders?<page>&<limit>")]
+#[get("/riders/getall?<page>&<limit>")]
 pub async fn riders_list_handler(
     page: Option<usize>,
     limit: Option<usize>,
@@ -53,6 +53,11 @@ pub fn specialization_validation( r_specialization: String) -> bool{
     }
     valid
 }
+use regex::Regex;
+pub fn email_validation( r_email: String) -> bool{
+    let re = regex::Regex::new(r"\S+@\S+\.\S+").unwrap();
+    re.is_match(r_email.as_str())
+}
 
 pub fn phone_validation( r_phone: String) -> bool{
     let mut valid = true;
@@ -69,7 +74,7 @@ pub fn phone_validation( r_phone: String) -> bool{
 }
 
 #[openapi(tag = "Riders")]
-#[post("/riders", data = "<body>")]
+#[post("/riders/new", data = "<body>")]
 pub async fn create_rider_handler(
     mut body: Json<Rider>,
     data: &State<AppState>,
@@ -166,7 +171,7 @@ pub fn get_bike_for_rider(bikeid: String) -> Option<Bike> {
 }
 
 #[openapi(tag = "Riders")]
-#[get("/riders/<rider_id>")]
+#[get("/riders/get/<rider_id>")]
 pub async fn get_rider_handler(
     rider_id: String,
     data: &State<AppState>,
@@ -209,7 +214,7 @@ pub async fn get_rider_handler(
 }
 
 #[openapi(tag = "Riders")]
-#[patch("/riders/<rider_id>", data = "<body>")]
+#[post("/riders/edit/<rider_id>", data = "<body>")]
 pub async fn update_rider_handler(
     rider_id: String,
     body: Json<UpdateRider>,
@@ -338,7 +343,7 @@ pub fn delete_rider_dependencies(rider_id: String) -> Result<usize, diesel::resu
 }
 
 #[openapi(tag = "Riders")]
-#[delete("/riders/<rider_id>")]
+#[post("/riders/delete/<rider_id>")]
 pub async fn delete_rider_handler(
     rider_id: String,
     data: &State<AppState>,

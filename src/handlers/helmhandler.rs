@@ -19,7 +19,7 @@ use rocket::{
 
 
 #[openapi(tag = "Helmets")]
-#[get("/helmets?<page>&<limit>")]
+#[get("/helmets/getall?<page>&<limit>")]
 pub async fn helmets_list_handler(
     page: Option<usize>,
     limit: Option<usize>,
@@ -46,8 +46,25 @@ pub async fn helmets_list_handler(
     Ok(Json(response_json))
 }
 
+
+pub fn size_validation(h_size: String) -> bool {
+    let mut valid = false;
+    if h_size == "XS" || h_size == "S" || h_size == "M" || h_size == "L" || h_size == "XL" || h_size == "XXL"{
+        valid = true;
+    }
+    valid
+}
+
+pub fn h_type_validation(h_type: String) -> bool {
+    let mut valid = false;
+    //'full face', 'enduro', 'trial', 'cross-country'
+    if h_type == "full face" || h_type == "enduro" || h_type == "trial" || h_type == "cross-country"{
+        valid = true;
+    }
+    valid
+}
 #[openapi(tag = "Helmets")]
-#[post("/helmets", data = "<body>")]
+#[post("/helmets/new", data = "<body>")]
 pub async fn create_helmet_handler(
     mut body: Json<Helmet>,
     data: &State<AppState>,
@@ -84,7 +101,14 @@ pub async fn create_helmet_handler(
         updated_at: Some(datetime.clone()),
         sold:body.sold
     };
-
+    //check validations
+    if !size_validation(new_helmet.size.clone()) || !h_type_validation(new_helmet.h_type.clone()){
+        let error = GenericResponse {
+            status: "error".to_string(),
+            message: "Invalid size or htype".to_string(),
+        };
+        return Err(Custom(Status::BadRequest, Json(error)));
+    }
 
     let helmet = new_helmet.to_owned(); 
     let helmet_for_db = helmet.clone();
@@ -106,7 +130,7 @@ pub async fn create_helmet_handler(
 }
 
 #[openapi(tag = "Helmets")]
-#[get("/helmets/<helm_id>")]
+#[get("/helmets/get/<helm_id>")]
 pub async fn get_helmet_handler(
     helm_id: String,
     data: &State<AppState>,
@@ -142,7 +166,7 @@ pub async fn get_helmet_handler(
 }
 
 #[openapi(tag = "Helmets")]
-#[patch("/helmets/<helm_id>", data = "<body>")]
+#[post("/helmets/edit/<helm_id>", data = "<body>")]
 pub async fn update_helmet_handler(
     helm_id: String,
     body: Json<UpdateHelmet>,
@@ -206,7 +230,15 @@ pub async fn update_helmet_handler(
             },
             created_at: old_helmet.created_at.to_owned(),
             updated_at: Some(datetime),
-            };
+            };  
+            //check validations
+            if !size_validation(payload.size.clone()) || !h_type_validation(payload.h_type.clone()){
+                let error = GenericResponse {
+                    status: "error".to_string(),
+                    message: "Invalid size or htype".to_string(),
+                };
+                return Err(Custom(Status::BadRequest, Json(error)));
+            }   
 
             let connection = &mut establish_connection();
             diesel::update(helmets.find(old_helmet.h_id.clone()))
@@ -251,7 +283,7 @@ pub fn delete_helmet_dependencies(helmid: String,data: &State<AppState>) -> Resu
 }
 
 #[openapi(tag = "Helmets")]
-#[delete("/helmet/<helm_id>")]
+#[post("/helmet/delete/<helm_id>")]
 pub async fn delete_helmet_handler(
     helm_id: String,
     data: &State<AppState>,

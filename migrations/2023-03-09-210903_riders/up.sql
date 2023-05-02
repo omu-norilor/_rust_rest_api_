@@ -28,6 +28,6 @@ create table Riders (
     phone varchar(255) not null,
     created_at timestamp without time zone not null,
     updated_at timestamp without time zone,
-    foreign key (helmet_id) references Helmets(h_id),
-    foreign key (bike_id) references Bikes(b_id)
+    foreign key (helmet_id) references Helmets(h_id) on delete cascade,
+    foreign key (bike_id) references Bikes(b_id) on delete cascade
 );

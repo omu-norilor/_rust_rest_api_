@@ -19,6 +19,27 @@ use rocket_okapi::settings::UrlObject;
 use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
 
 #[openapi(tag = "Bikes")]
+#[get("/bikes/getcount")]
+pub async fn bikes_count_handler(data: &State<AppState>) -> Result<Json<GenericResponse>, Status> {
+    use crate::schema::bikes::dsl::*;
+    let connection = &mut establish_connection();
+
+    //get the count of bikes
+    let count = bikes
+        .count()
+        .get_result::<i64>(connection)
+        .expect("Error loading bikes");
+
+    //send the count back
+    let response_json = GenericResponse {
+        status: "success".to_string(),
+        message: count.to_string(),
+    };
+
+    Ok(Json(response_json))
+}
+
+#[openapi(tag = "Bikes")]
 #[get("/bikes/getall?<page>&<limit>")]
 pub async fn bikes_list_handler(
     page: Option<usize>,
@@ -35,7 +56,7 @@ pub async fn bikes_list_handler(
     
     let mut limit = limit.unwrap_or(10);
     let mut offset = (page.unwrap_or(1) - 1) * limit;
-    let good_bikes: Vec<Bike> = vec.clone().into_iter().collect();
+    let good_bikes: Vec<Bike> = vec.clone().into_iter().skip(offset).take(limit).collect();
     let response_json = BikeListResponse {
         status: "success".to_string(),
         results: good_bikes.len(),
