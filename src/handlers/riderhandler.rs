@@ -62,7 +62,7 @@ pub async fn riders_list_handler(
 
     let response_json = RiderListResponse {
         status: "success".to_string(),
-        results: good_riders.len(),
+        results: vec.len(),
         riders:good_riders
     };
 

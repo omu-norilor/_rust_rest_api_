@@ -50,7 +50,6 @@ pub async fn bikes_list_handler(
     use crate::schema::bikes::dsl::*;
     let connection = &mut establish_connection();
     let vec = bikes
-        .filter(sold.eq(false))
         .load::<Bike>(connection)
         .expect("Error loading bikes");
     
@@ -59,7 +58,7 @@ pub async fn bikes_list_handler(
     let good_bikes: Vec<Bike> = vec.clone().into_iter().skip(offset).take(limit).collect();
     let response_json = BikeListResponse {
         status: "success".to_string(),
-        results: good_bikes.len(),
+        results: vec.len(),
         bikes:good_bikes
     };
 
@@ -67,13 +66,17 @@ pub async fn bikes_list_handler(
 }
 
 #[openapi(tag = "Bikes")]
-#[options("/bikes/compare/<comp>/<bike_price>")]
+#[get("/bikes/filter?<comp>&<page>&<limit>&<bike_price>")]
 pub async fn bikes_filter_handler(
     comp: String,
     bike_price: f64,
+    page: Option<usize>,
+    limit: Option<usize>,
     data: &State<AppState>,
 ) -> Result<Json<BikeListResponse>, Custom<Json<GenericResponse>>> {
 
+    let mut limit = limit.unwrap_or(10);
+    let mut offset = (page.unwrap_or(1) - 1) * limit;
     use crate::schema::bikes::dsl::*;
     let connection = &mut establish_connection();
     let vec = bikes
@@ -101,13 +104,15 @@ pub async fn bikes_filter_handler(
             return Err(Custom(Status::BadRequest, Json(erorr)));
         }
     }
-    for bike in vec_clone.iter() {
+    //get the count of bikes
+    let len = vec_clone.len();
+    //skip and take
+    let good_bikes: Vec<Bike> = vec_clone.clone().into_iter().skip(offset).take(limit).collect();
     
-    }
     let response_json = BikeListResponse {
         status: "success".to_string(),
-        results: vec_clone.len(),
-        bikes:vec_clone.clone()
+        results: len.clone(),
+        bikes:good_bikes.clone()
     };
 
     Ok(Json(response_json))

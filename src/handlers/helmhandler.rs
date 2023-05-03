@@ -50,7 +50,6 @@ pub async fn helmets_list_handler(
     use crate::schema::helmets::dsl::*;
     let connection = &mut establish_connection();
     let vec = helmets
-        .filter(sold.eq(false))
         .load::<Helmet>(connection)
         .expect("Error loading helmets");
     
@@ -60,7 +59,7 @@ pub async fn helmets_list_handler(
 
     let response_json = HelmetListResponse {
         status: "success".to_string(),
-        results: good_helmets.len(),
+        results: vec.len(),
         helmets:good_helmets
     };
 
