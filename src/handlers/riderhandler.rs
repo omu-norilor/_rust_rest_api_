@@ -19,6 +19,29 @@ use rocket_okapi::okapi::schemars::JsonSchema;
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::{openapi, openapi_get_routes, rapidoc::*, swagger_ui::*};
 
+
+#[openapi(tag = "Riders")]
+#[get("/riders/getcount")]
+pub async fn riders_count_handler(data: &State<AppState>) -> Result<Json<GenericResponse>, Status> {
+    use crate::schema::riders::dsl::*;
+    let connection = &mut establish_connection();
+
+    //get the count of riders
+    let count = riders
+        .count()
+        .get_result::<i64>(connection)
+        .expect("Error loading riders");
+
+    //send the count back
+    let response_json = GenericResponse {
+        status: "success".to_string(),
+        message: count.to_string(),
+    };
+
+    Ok(Json(response_json))
+}
+
+
 #[openapi(tag = "Riders")]
 #[get("/riders/getall?<page>&<limit>")]
 pub async fn riders_list_handler(

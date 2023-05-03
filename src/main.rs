@@ -72,6 +72,8 @@ fn rocket() -> _ {
         openapi_get_routes![
             index_handler,
             bikes_count_handler,
+            riders_count_handler,
+            helmets_count_handler,
             bikes_list_handler,
             create_bike_handler,
             get_bike_handler,

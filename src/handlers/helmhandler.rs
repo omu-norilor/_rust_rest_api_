@@ -17,6 +17,27 @@ use rocket::{
     delete, get, http::Status, patch, post, response::status::Custom, serde::json::Json, State
 };
 
+#[openapi(tag = "Helmets")]
+#[get("/helmets/getcount")]
+pub async fn helmets_count_handler(data: &State<AppState>) -> Result<Json<GenericResponse>, Status> {
+    use crate::schema::helmets::dsl::*;
+    let connection = &mut establish_connection();
+
+    //get the count of helmets
+    let count = helmets
+        .count()
+        .get_result::<i64>(connection)
+        .expect("Error loading helmets");
+
+    //send the count back
+    let response_json = GenericResponse {
+        status: "success".to_string(),
+        message: count.to_string(),
+    };
+
+    Ok(Json(response_json))
+}
+
 
 #[openapi(tag = "Helmets")]
 #[get("/helmets/getall?<page>&<limit>")]
@@ -283,7 +304,7 @@ pub fn delete_helmet_dependencies(helmid: String,data: &State<AppState>) -> Resu
 }
 
 #[openapi(tag = "Helmets")]
-#[post("/helmet/delete/<helm_id>")]
+#[post("/helmets/delete/<helm_id>")]
 pub async fn delete_helmet_handler(
     helm_id: String,
     data: &State<AppState>,
