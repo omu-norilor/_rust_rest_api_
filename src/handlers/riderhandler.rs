@@ -442,8 +442,10 @@ pub fn get_no_events_for_rider(riderid: String) -> usize {
 }
 
 #[openapi(tag = "Riders")]
-#[get("/riders/mostActive")]
+#[get("/riders/mostactive?<page>&<limit>")]
 pub async fn get_most_active_riders_handler(
+    page: Option<usize>,
+    limit: Option<usize>,
     data: &State<AppState>,
 ) -> Result<Json<RiderStatListResponse>, Custom<Json<GenericResponse>>> {
     use crate::schema::riders::dsl::*;
@@ -461,11 +463,15 @@ pub async fn get_most_active_riders_handler(
         };
         rider_stats.push(rider_stat);
     }
+    let limit = limit.unwrap_or(10);
+    let offset = (page.unwrap_or(1) - 1) * limit;
     rider_stats.sort_by(|a, b| b.no_events.cmp(&a.no_events)); 
-
+    let len = rider_stats.len();
+    let good_riders: Vec<_> =rider_stats.into_iter().skip(offset).take(limit).collect(); 
     let json_response = RiderStatListResponse {
         status: "success".to_string(),
-        riders: rider_stats,
+        results: len,
+        riders: good_riders,
     };
 
     return Ok(Json(json_response));

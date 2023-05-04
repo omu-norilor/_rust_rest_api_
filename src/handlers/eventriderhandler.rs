@@ -40,7 +40,7 @@ pub async fn eventrider_list_handler(
 
     let response_json = EventRiderListResponse {
         status: "success".to_string(),
-        results: good_eventriders.len(),
+        results: vec.len(),
         eventriders:good_eventriders
     };
 
@@ -48,7 +48,7 @@ pub async fn eventrider_list_handler(
 }
 
 #[openapi(tag = "EventRider")]
-#[post("/eventrider", data = "<body>")]
+#[post("/eventrider/new", data = "<body>")]
 pub async fn create_eventrider_handler(
     mut body: Json<EventRider>,
     data: &State<AppState>,
@@ -142,7 +142,7 @@ pub async fn get_eventrider_handler(
 }
 
 #[openapi(tag = "EventRider")]
-#[patch("/eventrider?<event_id>&<rider_id>", data = "<body>")]
+#[post("/eventrider/edit?<event_id>&<rider_id>", data = "<body>")]
 pub async fn update_eventrider_handler(
     event_id: String,
     rider_id: String,
@@ -214,7 +214,7 @@ pub fn delete_eventrider_dependencies (
     }
 
 #[openapi(tag = "EventRider")]
-#[delete("/eventrider?<event_id>&<rider_id>")]
+#[post("/eventrider/delete?<event_id>&<rider_id>")]
 pub async fn delete_eventrider_handler(
     event_id: String,
     rider_id: String,

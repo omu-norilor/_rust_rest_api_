@@ -1,6 +1,6 @@
 use crate::{
     model::{Helmet, UpdateHelmet,Rider, AppState},
-    response::{HelmetData, HelmetListResponse, GenericResponse, SingleHelmetResponse,HelmetStatListResponse,HelmetStat},
+    response::{HelmetData, HelmetListResponse, GenericResponse, SingleHelmetResponse,SingleHelmetWRidersResponse ,HelmetStatListResponse,HelmetStat},
     handlers::riderhandler::{delete_rider_dependencies},
     db::establish_connection,
 };
@@ -149,12 +149,24 @@ pub async fn create_helmet_handler(
     Ok(Json(json_response))
 }
 
+pub fn get_riders_for_helm(helmid: String) -> Vec<Rider> {
+    
+    use crate::schema::riders::dsl::*;
+    let connection = &mut establish_connection();
+    let helm_id_clone = helmid.clone();
+    let result = riders
+        .filter(helmet_id.eq(helm_id_clone))
+        .load::<Rider>(connection)
+        .expect("Error loading riders");
+    result.clone()
+}
+
 #[openapi(tag = "Helmets")]
 #[get("/helmets/get/<helm_id>")]
 pub async fn get_helmet_handler(
     helm_id: String,
     data: &State<AppState>,
-) -> Result<Json<SingleHelmetResponse>, Custom<Json<GenericResponse>>> {
+) -> Result<Json<SingleHelmetWRidersResponse>, Custom<Json<GenericResponse>>> {
     
     use crate::schema::helmets::dsl::*;
     let connection = &mut establish_connection();
@@ -166,11 +178,13 @@ pub async fn get_helmet_handler(
 
     match result {
         Some(helmet) => {
-            let json_response = SingleHelmetResponse {
+            let riders = get_riders_for_helm(helmet.h_id.clone());
+            let json_response = SingleHelmetWRidersResponse {
                 status: "success".to_string(),
                 helmet: HelmetData {
                     helmet: helmet.to_owned(),
                 },
+                riders:riders
             };
             return Ok(Json(json_response));
         }
@@ -376,8 +390,10 @@ pub fn get_no_riders_for_helmet(helmid: String) -> usize {
 }
 
 #[openapi(tag = "Helmets")]
-#[get("/helmets/mostUsed")]
+#[get("/helmets/mostused?<page>&<limit>")]
 pub async fn get_most_used_helmets_handler(
+    page: Option<usize>,
+    limit: Option<usize>,
     data: &State<AppState>,
 ) -> Result<Json<HelmetStatListResponse>, Custom<Json<GenericResponse>>> {
     use crate::schema::helmets::dsl::*;
@@ -395,11 +411,15 @@ pub async fn get_most_used_helmets_handler(
         };
         helm_stats.push(helmet_stat);
     }
-    helm_stats.sort_by(|a, b| b.no_riders.cmp(&a.no_riders)); 
-    
+    let limit = limit.unwrap_or(10);
+    let offset = (page.unwrap_or(1) - 1) * limit;
+    helm_stats.sort_by(|a, b| b.no_riders.cmp(&a.no_riders));
+    let len = helm_stats.len();
+    let good_stats =helm_stats.into_iter().skip(offset).take(limit).collect(); 
     let json_response = HelmetStatListResponse {
         status: "success".to_string(),
-        helmets: helm_stats,
+        results: len,
+        helmets: good_stats,
     };
 
     return Ok(Json(json_response));

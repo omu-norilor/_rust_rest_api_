@@ -57,6 +57,13 @@ pub struct SingleHelmetResponse {
 }
 
 #[derive(Serialize,Debug, JsonSchema)]
+pub struct SingleHelmetWRidersResponse {
+    pub status: String,
+    pub helmet: HelmetData,
+    pub riders: Vec<Rider>,
+}
+
+#[derive(Serialize,Debug, JsonSchema)]
 pub struct HelmetListResponse {
     pub status: String,
     pub results: usize,
@@ -72,6 +79,7 @@ pub struct HelmetStat {
 #[derive(Serialize,Debug,Deserialize, JsonSchema)]
 pub struct HelmetStatListResponse{
     pub status: String,
+    pub results: usize,
     pub helmets: Vec<HelmetStat>,
 }
 
@@ -113,6 +121,7 @@ pub struct RiderStat {
 #[derive(Serialize,Debug,Deserialize, JsonSchema)]
 pub struct RiderStatListResponse{
     pub status: String,
+    pub results: usize,
     pub riders: Vec<RiderStat>,
 }
 
