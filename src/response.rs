@@ -41,6 +41,7 @@ pub struct BikeListResponse {
     pub status: String,
     pub results: usize,
     pub bikes: Vec<Bike>,
+    pub counts: Vec<usize>,
 }
 
 //HERE THE HELMET RESPONSES STAND
@@ -68,6 +69,7 @@ pub struct HelmetListResponse {
     pub status: String,
     pub results: usize,
     pub helmets: Vec<Helmet>,
+    pub counts: Vec<usize>,
 }
 
 #[derive(Serialize,Debug,Deserialize, JsonSchema)]
@@ -111,6 +113,7 @@ pub struct RiderListResponse {
     pub status: String,
     pub results: usize,
     pub riders: Vec<Rider>,
+    pub counts: Vec<usize>,
 }
 #[derive(Serialize,Debug,Deserialize, JsonSchema)]
 pub struct RiderStat {

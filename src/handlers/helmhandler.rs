@@ -29,6 +29,10 @@ pub async fn helmets_count_handler(data: &State<AppState>) -> Result<Json<Generi
         .get_result::<i64>(connection)
         .expect("Error loading helmets");
 
+
+    //get the count of riders for each bike
+   
+
     //send the count back
     let response_json = GenericResponse {
         status: "success".to_string(),
@@ -38,6 +42,18 @@ pub async fn helmets_count_handler(data: &State<AppState>) -> Result<Json<Generi
     Ok(Json(response_json))
 }
 
+pub fn get_no_riders_for_helm(helmid: String) -> usize {
+    
+    use crate::schema::riders::dsl::*;
+    let connection = &mut establish_connection();
+    let helm_id_clone = helmid.clone();
+    let result = riders
+        .filter(helmet_id.eq(helm_id_clone))
+        .count()
+        .execute(connection)
+        .expect("Error loading riders");
+    result.clone()
+}
 
 #[openapi(tag = "Helmets")]
 #[get("/helmets/getall?<page>&<limit>")]
@@ -56,11 +72,18 @@ pub async fn helmets_list_handler(
     let limit = limit.unwrap_or(10);
     let offset = (page.unwrap_or(1) - 1) * limit;
     let good_helmets: Vec<Helmet> = vec.clone().into_iter().skip(offset).take(limit).collect();
+    //get the count of riders for each helmet
+    let mut rider_counts = Vec::new();
+    for helmet in good_helmets.clone() {
+        let count = get_no_riders_for_helm(helmet.h_id.clone());
+        rider_counts.push(count);
+    }
 
     let response_json = HelmetListResponse {
         status: "success".to_string(),
         results: vec.len(),
-        helmets:good_helmets
+        helmets:good_helmets,
+        counts: rider_counts,
     };
 
     Ok(Json(response_json))

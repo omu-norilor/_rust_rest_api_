@@ -39,6 +39,19 @@ pub async fn bikes_count_handler(data: &State<AppState>) -> Result<Json<GenericR
     Ok(Json(response_json))
 }
 
+pub fn get_rider_count_for_bike(bikeid: String) -> usize {
+    
+    use crate::schema::riders::dsl::*;
+    let connection = &mut establish_connection();
+    let bike_id_clone = bikeid.clone();
+    let result = riders
+        .filter(bike_id.eq(bike_id_clone))
+        .count()
+        .execute(connection)
+        .expect("Error loading riders");
+    result.clone()
+}
+
 #[openapi(tag = "Bikes")]
 #[get("/bikes/getall?<page>&<limit>")]
 pub async fn bikes_list_handler(
@@ -55,11 +68,24 @@ pub async fn bikes_list_handler(
     
     let mut limit = limit.unwrap_or(10);
     let mut offset = (page.unwrap_or(1) - 1) * limit;
+    
+    
     let good_bikes: Vec<Bike> = vec.clone().into_iter().skip(offset).take(limit).collect();
+
+
+    //get the count of riders for each bike
+    let mut rider_counts = Vec::new();
+    for bike in good_bikes.clone() {
+        let count = get_rider_count_for_bike(bike.b_id.clone());
+        rider_counts.push(count);
+    }
+
+
     let response_json = BikeListResponse {
         status: "success".to_string(),
         results: vec.len(),
-        bikes:good_bikes
+        bikes:good_bikes,
+        counts: rider_counts.clone()
     };
 
     Ok(Json(response_json))
@@ -108,11 +134,16 @@ pub async fn bikes_filter_handler(
     let len = vec_clone.len();
     //skip and take
     let good_bikes: Vec<Bike> = vec_clone.clone().into_iter().skip(offset).take(limit).collect();
-    
+    let mut rider_counts = Vec::new();
+    for bike in good_bikes.clone() {
+        let count = get_rider_count_for_bike(bike.b_id.clone());
+        rider_counts.push(count);
+    }
     let response_json = BikeListResponse {
         status: "success".to_string(),
         results: len.clone(),
-        bikes:good_bikes.clone()
+        bikes:good_bikes.clone(),
+        counts: rider_counts.clone()
     };
 
     Ok(Json(response_json))
@@ -421,7 +452,8 @@ pub async fn create_more_bikes_handler(
     let vec = bikes
         .load::<Bike>(connection)
         .expect("Error loading bikes");
-
+    
+        let mut rider_counts = Vec::new();
     for json_bike in body.into_inner().clone(){
         let mut found = false;
         for db_bike in vec.clone(){
@@ -452,6 +484,7 @@ pub async fn create_more_bikes_handler(
 
             }
             passed.push(payload.clone());
+            rider_counts.push(0);
         }
     }
     
@@ -459,7 +492,8 @@ pub async fn create_more_bikes_handler(
     let response_json = BikeListResponse {
         status: "success".to_string(),
         results: passed.len(),
-        bikes:passed
+        bikes:passed,
+        counts: rider_counts,
     };
 
     Ok(Json(response_json))

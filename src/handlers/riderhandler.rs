@@ -60,10 +60,18 @@ pub async fn riders_list_handler(
     let offset = (page.unwrap_or(1) - 1) * limit;
     let good_riders: Vec<Rider> = vec.clone().into_iter().skip(offset).take(limit).collect();
 
+    //get the count of riders for each bike
+    let mut event_counts = Vec::new();
+    for rider in good_riders.clone() {
+        let count = get_no_events_for_rider(rider.r_id.clone());
+        event_counts.push(count);
+    }
+    
     let response_json = RiderListResponse {
         status: "success".to_string(),
         results: vec.len(),
-        riders:good_riders
+        riders:good_riders,
+        counts:event_counts
     };
 
     Ok(Json(response_json))
@@ -436,9 +444,10 @@ pub fn get_no_events_for_rider(riderid: String) -> usize {
     let rider_id_clone = riderid.clone();
     let result = eventrider
         .filter(r_id.eq(rider_id_clone))
-        .load::<EventRider>(connection)
+        .count()
+        .execute(connection)
         .expect("Error loading eventriders");
-    result.len()
+    result.clone()
 }
 
 #[openapi(tag = "Riders")]
@@ -463,6 +472,7 @@ pub async fn get_most_active_riders_handler(
         };
         rider_stats.push(rider_stat);
     }
+
     let limit = limit.unwrap_or(10);
     let offset = (page.unwrap_or(1) - 1) * limit;
     rider_stats.sort_by(|a, b| b.no_events.cmp(&a.no_events)); 
