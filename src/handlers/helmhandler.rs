@@ -1,6 +1,6 @@
 use crate::{
-    model::{Helmet, UpdateHelmet,Rider, AppState},
-    response::{HelmetData, HelmetListResponse, GenericResponse, SingleHelmetResponse,SingleHelmetWRidersResponse ,HelmetStatListResponse,HelmetStat},
+    model::{Helmet,HelmetStat, UpdateHelmet,Rider, AppState},
+    response::{HelmetData, HelmetListResponse, GenericResponse, SingleHelmetResponse,SingleHelmetWRidersResponse ,HelmetStatListResponse},
     handlers::riderhandler::{delete_rider_dependencies},
     db::establish_connection,
 };
@@ -42,7 +42,7 @@ pub async fn helmets_count_handler(data: &State<AppState>) -> Result<Json<Generi
     Ok(Json(response_json))
 }
 
-pub fn get_no_riders_for_helm(helmid: String) -> usize {
+pub fn get_no_riders_for_helm(helmid: String) -> i64 {
     
     use crate::schema::riders::dsl::*;
     let connection = &mut establish_connection();
@@ -50,7 +50,7 @@ pub fn get_no_riders_for_helm(helmid: String) -> usize {
     let result = riders
         .filter(helmet_id.eq(helm_id_clone))
         .count()
-        .execute(connection)
+        .get_result::<i64>(connection)
         .expect("Error loading riders");
     result.clone()
 }
@@ -61,32 +61,53 @@ pub async fn helmets_list_handler(
     page: Option<usize>,
     limit: Option<usize>,
     data: &State<AppState>,
-) -> Result<Json<HelmetListResponse>, Status> {
+) -> Result<Json<HelmetStatListResponse>, Status> {
     
     use crate::schema::helmets::dsl::*;
     let connection = &mut establish_connection();
+    let limit = limit.map(|l| l as i64).unwrap_or(10);
+    let page = page.map(|p| p as i64).unwrap_or(1);
+    let offset = (page - 1) * limit;
+
+
     let vec = helmets
+        .limit(limit)
+        .offset(offset)
         .load::<Helmet>(connection)
         .expect("Error loading helmets");
-    
-    let limit = limit.unwrap_or(10);
-    let offset = (page.unwrap_or(1) - 1) * limit;
-    let good_helmets: Vec<Helmet> = vec.clone().into_iter().skip(offset).take(limit).collect();
-    //get the count of riders for each helmet
-    let mut rider_counts = Vec::new();
-    for helmet in good_helmets.clone() {
-        let count = get_no_riders_for_helm(helmet.h_id.clone());
-        rider_counts.push(count);
-    }
 
-    let response_json = HelmetListResponse {
+    let count = helmets
+        .count()
+        .get_result::<i64>(connection)
+        .expect("Error loading helmets");
+    
+    
+    //get the count of riders for each helmet
+
+    let mut helm_stat_vec: Vec<HelmetStat> = Vec::new();
+    for helmet in vec.clone(){
+        let no_riders = get_no_riders_for_helm(helmet.h_id.clone());
+        let helm_stat = HelmetStat {
+            h_id: helmet.h_id.clone(),
+            brand: helmet.brand.clone(),
+            model: helmet.model.clone(),
+            size: helmet.size.clone(),
+            h_type: helmet.h_type.clone(),
+            price: helmet.price.clone(),
+            sold: helmet.sold.clone(),
+            created_at: helmet.created_at.clone(),
+            updated_at: helmet.updated_at.clone(),
+            no_riders: no_riders,
+        };
+        helm_stat_vec.push(helm_stat);
+    }
+    let json_response = HelmetStatListResponse {
         status: "success".to_string(),
-        results: vec.len(),
-        helmets:good_helmets,
-        counts: rider_counts,
+        results: count,
+        helmets: helm_stat_vec,
     };
 
-    Ok(Json(response_json))
+    Ok(Json(json_response))
 }
 
 
@@ -400,17 +421,17 @@ pub async fn delete_helmet_handler(
 
 }
 
-pub fn get_no_riders_for_helmet(helmid: String) -> usize {
+// pub fn get_no_riders_for_helmet(helmid: String) -> i64 {
     
-    use crate::schema::riders::dsl::*;
-    let connection = &mut establish_connection();
-    let helm_id_clone = helmid.clone();
-    let result = riders
-        .filter(helmet_id.eq(helm_id_clone))
-        .load::<Rider>(connection)
-        .expect("Error loading riders");
-    result.len()
-}
+//     use crate::schema::riders::dsl::*;
+//     let connection = &mut establish_connection();
+//     let helm_id_clone = helmid.clone();
+//     let result = riders
+//         .filter(helmet_id.eq(helm_id_clone))
+//         .get_result::<i64>(connection)
+//         .expect("Error loading riders");
+//     result.len()
+// }
 
 #[openapi(tag = "Helmets")]
 #[get("/helmets/mostused?<page>&<limit>")]
@@ -419,30 +440,74 @@ pub async fn get_most_used_helmets_handler(
     limit: Option<usize>,
     data: &State<AppState>,
 ) -> Result<Json<HelmetStatListResponse>, Custom<Json<GenericResponse>>> {
-    use crate::schema::helmets::dsl::*;
-    let connection = &mut establish_connection();
-    let result = helmets
-        .load::<Helmet>(connection)
-        .expect("Error loading helmets");
 
-    let mut helm_stats: Vec<HelmetStat> = Vec::new();
-    for helmet in result.clone() {
-        let no_riders = get_no_riders_for_helmet(helmet.h_id.clone());
-        let mut helmet_stat = HelmetStat {
-            helmet: helmet.clone(),
+    use crate::schema::{helmets, riders};
+    use diesel::dsl::{count, max};
+    use diesel::prelude::*;
+
+    let connection = &mut establish_connection();
+    let limit = limit.map(|l| l as i64).unwrap_or(10);
+    let page = page.map(|p| p as i64).unwrap_or(1);
+    let offset = (page - 1) * limit;
+
+    let vec =helmets::table
+        .left_join(
+            riders::table.on(helmets::h_id.eq(riders::helmet_id)),
+        )
+        .select(helmets::all_columns)
+        .group_by(helmets::h_id)
+        .order_by(count(riders::r_id).desc())
+        .limit(limit)
+        .offset(offset)
+        .load::<Helmet>(connection)
+        .expect("Error loading helmet rider counts");
+
+    let count = helmets::table
+    .count()
+    .get_result::<i64>(connection)
+    .expect("Error loading helmet rider counts");
+    // use crate::schema::helmets::dsl::*;
+    // let connection = &mut establish_connection();
+    // let result = helmets
+    //     .load::<Helmet>(connection)
+    //     .expect("Error loading helmets");
+
+    // let mut helm_stats: Vec<HelmetStat> = Vec::new();
+    // for helmet in result.clone() {
+    //     let no_riders = get_no_riders_for_helm(helmet.h_id.clone());
+    //     let mut helmet_stat = HelmetStat {
+    //         helmet: helmet.clone(),
+    //         no_riders: no_riders,
+    //     };
+    //     helm_stats.push(helmet_stat);
+    // }
+    // let limit = limit.unwrap_or(10);
+    // let offset = (page.unwrap_or(1) - 1) * limit;
+    // helm_stats.sort_by(|a, b| b.no_riders.cmp(&a.no_riders));
+    // let len = helm_stats.len();
+    // let good_stats =helm_stats.into_iter().skip(offset).take(limit).collect(); 
+    
+    let mut helm_stat_vec: Vec<HelmetStat> = Vec::new();
+    for helmet in vec.clone(){
+        let no_riders = get_no_riders_for_helm(helmet.h_id.clone());
+        let helm_stat = HelmetStat {
+            h_id: helmet.h_id.clone(),
+            brand: helmet.brand.clone(),
+            model: helmet.model.clone(),
+            size: helmet.size.clone(),
+            h_type: helmet.h_type.clone(),
+            price: helmet.price.clone(),
+            sold: helmet.sold.clone(),
+            created_at: helmet.created_at.clone(),
+            updated_at: helmet.updated_at.clone(),
             no_riders: no_riders,
         };
-        helm_stats.push(helmet_stat);
+        helm_stat_vec.push(helm_stat);
     }
-    let limit = limit.unwrap_or(10);
-    let offset = (page.unwrap_or(1) - 1) * limit;
-    helm_stats.sort_by(|a, b| b.no_riders.cmp(&a.no_riders));
-    let len = helm_stats.len();
-    let good_stats =helm_stats.into_iter().skip(offset).take(limit).collect(); 
     let json_response = HelmetStatListResponse {
         status: "success".to_string(),
-        results: len,
-        helmets: good_stats,
+        results: count,
+        helmets: helm_stat_vec,
     };
 
     return Ok(Json(json_response));

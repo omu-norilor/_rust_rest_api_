@@ -1,1 +1,7 @@
 /target
+/migrations
+/up1.sql
+/up2.sql
+/up3.sql
+/up4.sql
+/up5.sql

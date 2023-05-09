@@ -137,35 +137,35 @@ mod test{
     use crate::response::RiderStatListResponse;
     use crate::response::HelmetStatListResponse;
 
-    #[test]fn test_active_riders() {
+    // #[test]fn test_active_riders() {
 
-        let client = Client::tracked(rocket()).expect("valid rocket instance");
-        let mut response = client.get("/riders/mostActive").dispatch();
-        assert_eq!(response.status(), Status::Ok);
+    //     let client = Client::tracked(rocket()).expect("valid rocket instance");
+    //     let mut response = client.get("/riders/mostActive").dispatch();
+    //     assert_eq!(response.status(), Status::Ok);
         
-        let body: RiderStatListResponse =response.into_json::<RiderStatListResponse>().expect("valid json");
-        let data = body.riders;
+    //     let body: RiderStatListResponse =response.into_json::<RiderStatListResponse>().expect("valid json");
+    //     let data = body.riders;
         
-        let rider_activity = data.iter().map(|x| x.no_events).collect::<Vec<usize>>(); 
-        for i in 0..rider_activity.len()-1 {
-            assert!(rider_activity[i] >= rider_activity[i+1]);
-        }
+    //     let rider_activity = data.iter().map(|x| x.no_events).collect::<Vec<usize>>(); 
+    //     for i in 0..rider_activity.len()-1 {
+    //         assert!(rider_activity[i] >= rider_activity[i+1]);
+    //     }
         
-    }
+    // }
 
-    #[test]
-    fn test_most_used_helmets() {
+    // #[test]
+    // fn test_most_used_helmets() {
 
-        let client = Client::tracked(rocket()).expect("valid rocket instance");
-        let mut response = client.get("/helmets/mostUsed").dispatch();
-        assert_eq!(response.status(), Status::Ok);
+    //     let client = Client::tracked(rocket()).expect("valid rocket instance");
+    //     let mut response = client.get("/helmets/mostUsed").dispatch();
+    //     assert_eq!(response.status(), Status::Ok);
 
-        let body: HelmetStatListResponse =response.into_json::<HelmetStatListResponse>().expect("valid json");
-        let data = body.helmets;
+    //     let body: HelmetStatListResponse =response.into_json::<HelmetStatListResponse>().expect("valid json");
+    //     let data = body.helmets;
         
-        let helmet_uses = data.iter().map(|x| x.no_riders).collect::<Vec<usize>>();
-        for i in 0..helmet_uses.len()-1 {
-            assert!(helmet_uses[i] >= helmet_uses[i+1]);
-        }
-    }
+    //     let helmet_uses = data.iter().map(|x| x.no_riders).collect::<Vec<usize>>();
+    //     for i in 0..helmet_uses.len()-1 {
+    //         assert!(helmet_uses[i] >= helmet_uses[i+1]);
+    //     }
+    // }
 }

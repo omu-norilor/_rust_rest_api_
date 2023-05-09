@@ -23,6 +23,25 @@ pub struct Bike {
     pub updated_at: Option<NaiveDateTime>,
 
 }
+
+#[allow(non_snake_case)]
+#[derive(Clone, Serialize, Deserialize, Debug, JsonSchema)]
+pub struct BikeStat {
+    pub b_id: String,
+    pub brand: String,
+    pub model: String,
+    pub wheelsize: f64,
+    pub size: String,
+    pub price: f64,
+    pub sold: bool,
+    pub no_riders: i64,
+    pub created_at: NaiveDateTime,
+    pub updated_at: Option<NaiveDateTime>,
+
+}
+
+
+
 #[allow(non_snake_case)]
 #[derive(Queryable,Insertable,Clone,Serialize, Deserialize, Debug,AsChangeset, JsonSchema)]
 #[diesel(table_name = helmets)]
@@ -34,6 +53,22 @@ pub struct Helmet {
     pub size: String,
     pub price: f64,
     pub sold: bool,
+    pub created_at: NaiveDateTime,
+    pub updated_at: Option<NaiveDateTime>,
+}
+
+
+#[allow(non_snake_case)]
+#[derive(Clone, Serialize, Deserialize, Debug, JsonSchema)]
+pub struct HelmetStat {
+    pub h_id: String,
+    pub brand: String,
+    pub model: String,
+    pub h_type: String,
+    pub size: String,
+    pub price: f64,
+    pub sold: bool,
+    pub no_riders: i64,
     pub created_at: NaiveDateTime,
     pub updated_at: Option<NaiveDateTime>,
 }
@@ -51,6 +86,24 @@ pub struct Rider {
     pub specialization: String,
     pub email: String,
     pub phone: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: Option<NaiveDateTime>,
+}
+
+
+#[allow(non_snake_case)]
+#[derive(Clone, Serialize, Deserialize, Debug, JsonSchema)]
+pub struct RiderStat {
+    pub r_id: String,
+    pub helmet_id: String,
+    pub bike_id: String,
+    pub r_name: String,
+    pub height: f64,
+    pub r_weight: f64,
+    pub specialization: String,
+    pub email: String,
+    pub phone: String,
+    pub no_events: i64,
     pub created_at: NaiveDateTime,
     pub updated_at: Option<NaiveDateTime>,
 }

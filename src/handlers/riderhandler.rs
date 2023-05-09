@@ -1,6 +1,6 @@
 use crate::{
-    model::{Rider,UpdateRider,Bike,Helmet,EventRider,AppState},
-    response::{GenericResponse, RiderData, SingleRiderWithGearResponse,RiderListResponse,RiderStat,RiderStatListResponse},
+    model::{Rider,RiderStat,UpdateRider,Bike,Helmet,EventRider,AppState},
+    response::{GenericResponse, RiderData, SingleRiderWithGearResponse,RiderListResponse,RiderStatListResponse},
     handlers::eventriderhandler::delete_eventrider_dependencies,
     db::establish_connection,
 };
@@ -48,33 +48,58 @@ pub async fn riders_list_handler(
     page: Option<usize>,
     limit: Option<usize>,
     data: &State<AppState>,
-) -> Result<Json<RiderListResponse>, Status> {
+) -> Result<Json<RiderStatListResponse>, Status> {
     
     use crate::schema::riders::dsl::*;
     let connection = &mut establish_connection();
+    let limit = limit.map(|l| l as i64).unwrap_or(10);
+    let page = page.map(|p| p as i64).unwrap_or(1);
+    let offset = (page - 1) * limit;
+
     let vec = riders
         .load::<Rider>(connection)
         .expect("Error loading riders");
     
-    let limit = limit.unwrap_or(10);
-    let offset = (page.unwrap_or(1) - 1) * limit;
-    let good_riders: Vec<Rider> = vec.clone().into_iter().skip(offset).take(limit).collect();
+    let vec = riders
+        .limit(limit)
+        .offset(offset)
+        .load::<Rider>(connection)
+        .expect("Error loading helmets");
+
+    let count = riders
+        .count()
+        .get_result::<i64>(connection)
+        .expect("Error loading helmets");
+
 
     //get the count of riders for each bike
-    let mut event_counts = Vec::new();
-    for rider in good_riders.clone() {
-        let count = get_no_events_for_rider(rider.r_id.clone());
-        event_counts.push(count);
+    let mut rider_stat_vec: Vec<RiderStat> = Vec::new();
+    for rider in vec.clone(){
+        let no_events = get_no_events_for_rider(rider.r_id.clone());
+        let rider_stat = RiderStat {
+            r_id: rider.r_id.clone(),
+            r_name: rider.r_name.clone(),
+            email: rider.email.clone(),
+            phone: rider.phone.clone(),
+            specialization: rider.specialization.clone(),
+            bike_id: rider.bike_id.clone(),
+            helmet_id: rider.helmet_id.clone(),
+            height: rider.height.clone(),
+            r_weight: rider.r_weight.clone(),
+            created_at: rider.created_at.clone(),
+            updated_at: rider.updated_at.clone(),
+            no_events: no_events,
+        };
+        rider_stat_vec.push(rider_stat);
     }
-    
-    let response_json = RiderListResponse {
+
+    let json_response = RiderStatListResponse {
         status: "success".to_string(),
-        results: vec.len(),
-        riders:good_riders,
-        counts:event_counts
+        results: count,
+        riders: rider_stat_vec,
     };
 
-    Ok(Json(response_json))
+    return Ok(Json(json_response));
 }
 
 pub fn specialization_validation( r_specialization: String) -> bool{
@@ -437,7 +462,7 @@ pub async fn delete_rider_handler(
 
 
 
-pub fn get_no_events_for_rider(riderid: String) -> usize {
+pub fn get_no_events_for_rider(riderid: String) -> i64 {
     
     use crate::schema::eventrider::dsl::*;
     let connection = &mut establish_connection();
@@ -445,7 +470,7 @@ pub fn get_no_events_for_rider(riderid: String) -> usize {
     let result = eventrider
         .filter(r_id.eq(rider_id_clone))
         .count()
-        .execute(connection)
+        .get_result::<i64>(connection)
         .expect("Error loading eventriders");
     result.clone()
 }
@@ -457,31 +482,56 @@ pub async fn get_most_active_riders_handler(
     limit: Option<usize>,
     data: &State<AppState>,
 ) -> Result<Json<RiderStatListResponse>, Custom<Json<GenericResponse>>> {
-    use crate::schema::riders::dsl::*;
-    let connection = &mut establish_connection();
-    let result = riders
-        .load::<Rider>(connection)
-        .expect("Error loading riders");
 
-    let mut rider_stats: Vec<RiderStat> = Vec::new();
-    for rider in result.clone() {
+    use crate::schema::{riders,eventrider};
+    use diesel::dsl::{count, max};
+    use diesel::prelude::*;
+
+    let connection = &mut establish_connection();
+    let limit = limit.map(|l| l as i64).unwrap_or(10);
+    let page = page.map(|p| p as i64).unwrap_or(1);
+    let offset = (page - 1) * limit;
+
+    let vec =riders::table
+        .left_join(
+            eventrider::table.on(riders::r_id.eq(eventrider::r_id)),
+        )
+        .select(riders::all_columns)
+        .group_by(riders::r_id)
+        .order_by(count(eventrider::r_id).desc())
+        .limit(limit)
+        .offset(offset)
+        .load::<Rider>(connection)
+        .expect("Error loading event-rider counts");
+
+    let count = riders::table
+    .count()
+    .get_result::<i64>(connection)
+    .expect("Error loading rider count");
+    let mut rider_stat_vec: Vec<RiderStat> = Vec::new();
+    for rider in vec.clone(){
         let no_events = get_no_events_for_rider(rider.r_id.clone());
-        let mut rider_stat = RiderStat {
-            rider: rider.clone(),
+        let rider_stat = RiderStat {
+            r_id: rider.r_id.clone(),
+            r_name: rider.r_name.clone(),
+            email: rider.email.clone(),
+            phone: rider.phone.clone(),
+            specialization: rider.specialization.clone(),
+            bike_id: rider.bike_id.clone(),
+            helmet_id: rider.helmet_id.clone(),
+            height: rider.height.clone(),
+            r_weight: rider.r_weight.clone(),
+            created_at: rider.created_at.clone(),
+            updated_at: rider.updated_at.clone(),
             no_events: no_events,
         };
-        rider_stats.push(rider_stat);
+        rider_stat_vec.push(rider_stat);
     }
 
-    let limit = limit.unwrap_or(10);
-    let offset = (page.unwrap_or(1) - 1) * limit;
-    rider_stats.sort_by(|a, b| b.no_events.cmp(&a.no_events)); 
-    let len = rider_stats.len();
-    let good_riders: Vec<_> =rider_stats.into_iter().skip(offset).take(limit).collect(); 
     let json_response = RiderStatListResponse {
         status: "success".to_string(),
-        results: len,
-        riders: good_riders,
+        results: count,
+        riders: rider_stat_vec,
     };
 
     return Ok(Json(json_response));

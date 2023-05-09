@@ -1,6 +1,6 @@
 use crate::{
-    model::{Bike, UpdateBike,Rider,AppState},
-    response::{BikeData, BikeListResponse, GenericResponse, SingleBikeResponse, SingleBikeWRidersResponse},
+    model::{Bike,BikeStat, UpdateBike,Rider,AppState},
+    response::{BikeData, BikeListResponse, GenericResponse, SingleBikeResponse, SingleBikeWRidersResponse,BikeStatListResponse},
     handlers::riderhandler::{delete_rider_dependencies},
     db::establish_connection,
 };
@@ -24,22 +24,18 @@ pub async fn bikes_count_handler(data: &State<AppState>) -> Result<Json<GenericR
     use crate::schema::bikes::dsl::*;
     let connection = &mut establish_connection();
 
-    //get the count of bikes
     let count = bikes
         .count()
         .get_result::<i64>(connection)
-        .expect("Error loading bikes");
-
-    //send the count back
-    let response_json = GenericResponse {
+        .expect("Error loading bikes count");
+    let json_response = GenericResponse {
         status: "success".to_string(),
         message: count.to_string(),
     };
-
-    Ok(Json(response_json))
+    Ok(Json(json_response))
 }
 
-pub fn get_rider_count_for_bike(bikeid: String) -> usize {
+pub fn get_no_riders_for_bike(bikeid: String) -> i64 {
     
     use crate::schema::riders::dsl::*;
     let connection = &mut establish_connection();
@@ -47,8 +43,9 @@ pub fn get_rider_count_for_bike(bikeid: String) -> usize {
     let result = riders
         .filter(bike_id.eq(bike_id_clone))
         .count()
-        .execute(connection)
-        .expect("Error loading riders");
+        .get_result::<i64>(connection)
+        .expect("Error loading riders \n");
+    print!("Rider count for bike {} is {}", bikeid, result);
     result.clone()
 }
 
@@ -58,37 +55,51 @@ pub async fn bikes_list_handler(
     page: Option<usize>,
     limit: Option<usize>,
     data: &State<AppState>,
-) -> Result<Json<BikeListResponse>, Status> {
+) -> Result<Json<BikeStatListResponse>, Status> {
    
     use crate::schema::bikes::dsl::*;
     let connection = &mut establish_connection();
+    let limit = limit.map(|l| l as i64).unwrap_or(10);
+    let page = page.map(|p| p as i64).unwrap_or(1);
+    let offset = (page - 1) * limit;
+
+
     let vec = bikes
+        .limit(limit)
+        .offset(offset)
         .load::<Bike>(connection)
         .expect("Error loading bikes");
-    
-    let mut limit = limit.unwrap_or(10);
-    let mut offset = (page.unwrap_or(1) - 1) * limit;
-    
-    
-    let good_bikes: Vec<Bike> = vec.clone().into_iter().skip(offset).take(limit).collect();
 
-
-    //get the count of riders for each bike
-    let mut rider_counts = Vec::new();
-    for bike in good_bikes.clone() {
-        let count = get_rider_count_for_bike(bike.b_id.clone());
-        rider_counts.push(count);
+    let count = bikes
+        .count()
+        .get_result::<i64>(connection)
+        .expect("Error loading bikes count");
+    //get the count of bikes
+    //send the count back
+    let mut bike_stat_vec: Vec<BikeStat> = Vec::new();
+    for bike in vec.clone(){
+        let no_riders = get_no_riders_for_bike(bike.b_id.clone());
+        let bike_stat = BikeStat {
+            b_id: bike.b_id.clone(),
+            brand: bike.brand.clone(),
+            model: bike.model.clone(),
+            size: bike.size.clone(),
+            wheelsize: bike.wheelsize.clone(),
+            sold: bike.sold.clone(),
+            created_at: bike.created_at.clone(),
+            updated_at: bike.updated_at.clone(),    
+            price: bike.price.clone(),
+            
+            no_riders: no_riders,
+        };
+        bike_stat_vec.push(bike_stat);
     }
-
-
-    let response_json = BikeListResponse {
+    let json_response = BikeStatListResponse {
         status: "success".to_string(),
-        results: vec.len(),
-        bikes:good_bikes,
-        counts: rider_counts.clone()
+        results: count,
+        bikes: bike_stat_vec,
     };
-
-    Ok(Json(response_json))
+    Ok(Json(json_response))
 }
 
 #[openapi(tag = "Bikes")]
@@ -99,28 +110,59 @@ pub async fn bikes_filter_handler(
     page: Option<usize>,
     limit: Option<usize>,
     data: &State<AppState>,
-) -> Result<Json<BikeListResponse>, Custom<Json<GenericResponse>>> {
+) -> Result<Json<BikeStatListResponse>, Custom<Json<GenericResponse>>> {
 
-    let mut limit = limit.unwrap_or(10);
-    let mut offset = (page.unwrap_or(1) - 1) * limit;
+    
     use crate::schema::bikes::dsl::*;
     let connection = &mut establish_connection();
-    let vec = bikes
-        .load::<Bike>(connection)
-        .expect("Error loading bikes");
-
-    let vec_clone:Vec<Bike>;
+    let limit = limit.map(|l| l as i64).unwrap_or(10);
+    let page = page.map(|p| p as i64).unwrap_or(1);
+    let offset = (page - 1) * limit;
+    let vec:Vec<Bike>;
+    let count:i64;
+    
     match comp.as_str() {
         "gt" => {
-            vec_clone = vec.clone().iter().filter(|bike| bike.sold.eq(&false) && bike.price.gt(&bike_price)).map(|bike|bike.clone()).collect();
-        },
-        "lt" => {
-            vec_clone = vec.clone().iter().filter(|bike| bike.sold.eq(&false) && bike.price.lt(&bike_price)).map(|bike|bike.clone()).collect();
+            vec = bikes.
+            filter(price.gt(bike_price))
+            .limit(limit)
+            .offset(offset)
+            .load::<Bike>(connection)
+            .expect("Error loading bikes");
 
+            count = bikes
+            .filter(price.gt(bike_price))
+            .count()
+            .get_result::<i64>(connection)
+            .expect("Error loading bikes count");
+                },
+        "lt" => {
+            vec = bikes.
+            filter(price.lt(bike_price))
+            .limit(limit)
+            .offset(offset)
+            .load::<Bike>(connection)
+            .expect("Error loading bikes");
+
+            count = bikes
+            .filter(price.lt(bike_price))
+            .count()
+            .get_result::<i64>(connection)
+            .expect("Error loading bikes count");
         },
         "eq" => {
-            vec_clone = vec.clone().iter().filter(|bike| bike.sold.eq(&false) && bike.price.eq(&bike_price)).map(|bike|bike.clone()).collect();
+            vec = bikes.
+            filter(price.eq(bike_price))
+            .limit(limit)
+            .offset(offset)
+            .load::<Bike>(connection)
+            .expect("Error loading bikes");
 
+            count = bikes
+            .filter(price.eq(bike_price))
+            .count()
+            .get_result::<i64>(connection)
+            .expect("Error loading bikes count");
         },
         _ => {
             let erorr = GenericResponse {
@@ -130,23 +172,30 @@ pub async fn bikes_filter_handler(
             return Err(Custom(Status::BadRequest, Json(erorr)));
         }
     }
-    //get the count of bikes
-    let len = vec_clone.len();
-    //skip and take
-    let good_bikes: Vec<Bike> = vec_clone.clone().into_iter().skip(offset).take(limit).collect();
-    let mut rider_counts = Vec::new();
-    for bike in good_bikes.clone() {
-        let count = get_rider_count_for_bike(bike.b_id.clone());
-        rider_counts.push(count);
+    let mut bike_stat_vec: Vec<BikeStat> = Vec::new();
+    for bike in vec.clone(){
+        let no_riders = get_no_riders_for_bike(bike.b_id.clone());
+        let bike_stat = BikeStat {
+            b_id: bike.b_id.clone(),
+            brand: bike.brand.clone(),
+            model: bike.model.clone(),
+            size: bike.size.clone(),
+            wheelsize: bike.wheelsize.clone(),
+            sold: bike.sold.clone(),
+            created_at: bike.created_at.clone(),
+            updated_at: bike.updated_at.clone(),    
+            price: bike.price.clone(),
+            
+            no_riders: no_riders,
+        };
+        bike_stat_vec.push(bike_stat);
     }
-    let response_json = BikeListResponse {
+    let json_response: BikeStatListResponse = BikeStatListResponse {
         status: "success".to_string(),
-        results: len.clone(),
-        bikes:good_bikes.clone(),
-        counts: rider_counts.clone()
+        results: count,
+        bikes: bike_stat_vec,
     };
-
-    Ok(Json(response_json))
+    Ok(Json(json_response))
 }
 
 pub fn size_validation(b_size: String) -> bool {
@@ -357,7 +406,7 @@ pub async fn update_bike_handler(
                 diesel::update(bikes.find(old_bike.b_id.clone()))
                 .set(&payload)
                 .execute(connection)
-                .expect("Error updating helmet");
+                .expect("Error updating bike");
                 
                 let json_response = SingleBikeResponse {
                     status: "success".to_string(),

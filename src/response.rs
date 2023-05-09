@@ -1,6 +1,9 @@
 use crate::model::Bike;
 use crate::model::Helmet;
 use crate::model::Rider;
+use crate::model::BikeStat;
+use crate::model::HelmetStat;
+use crate::model::RiderStat;
 use crate::model::Event;
 use crate::model::EventRider;
 use serde::Serialize;
@@ -41,7 +44,21 @@ pub struct BikeListResponse {
     pub status: String,
     pub results: usize,
     pub bikes: Vec<Bike>,
-    pub counts: Vec<usize>,
+    pub counts: Vec<i64>,
+}
+
+// #[derive(Serialize,Debug,Deserialize, JsonSchema)]
+// pub struct BikeStat {
+//     pub bike: Bike,
+//     pub no_riders: i64,
+// }
+
+#[derive(Serialize,Debug,Deserialize, JsonSchema)]
+
+pub struct BikeStatListResponse{
+    pub status: String,
+    pub results: i64,
+    pub bikes: Vec<BikeStat>,
 }
 
 //HERE THE HELMET RESPONSES STAND
@@ -69,19 +86,19 @@ pub struct HelmetListResponse {
     pub status: String,
     pub results: usize,
     pub helmets: Vec<Helmet>,
-    pub counts: Vec<usize>,
+    pub counts: Vec<i64>,
 }
 
-#[derive(Serialize,Debug,Deserialize, JsonSchema)]
-pub struct HelmetStat {
-    pub helmet: Helmet,
-    pub no_riders: usize,
-}
+// #[derive(Serialize,Debug,Deserialize, JsonSchema)]
+// pub struct HelmetStat {
+//     pub helmet: Helmet,
+//     pub no_riders: i64,
+// }
 
 #[derive(Serialize,Debug,Deserialize, JsonSchema)]
 pub struct HelmetStatListResponse{
     pub status: String,
-    pub results: usize,
+    pub results: i64,
     pub helmets: Vec<HelmetStat>,
 }
 
@@ -113,18 +130,18 @@ pub struct RiderListResponse {
     pub status: String,
     pub results: usize,
     pub riders: Vec<Rider>,
-    pub counts: Vec<usize>,
+    pub counts: Vec<i64>,
 }
-#[derive(Serialize,Debug,Deserialize, JsonSchema)]
-pub struct RiderStat {
-    pub rider: Rider,
-    pub no_events: usize,
-}
+// #[derive(Serialize,Debug,Deserialize, JsonSchema)]
+// pub struct RiderStat {
+//     pub rider: Rider,
+//     pub no_events: i64,
+// }
 
 #[derive(Serialize,Debug,Deserialize, JsonSchema)]
 pub struct RiderStatListResponse{
     pub status: String,
-    pub results: usize,
+    pub results: i64,
     pub riders: Vec<RiderStat>,
 }
 
