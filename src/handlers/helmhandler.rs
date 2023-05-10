@@ -1,7 +1,7 @@
 use crate::{
     model::{Helmet,HelmetStat, UpdateHelmet,Rider, AppState},
     response::{HelmetData, HelmetListResponse, GenericResponse, SingleHelmetResponse,SingleHelmetWRidersResponse ,HelmetStatListResponse},
-    handlers::riderhandler::{delete_rider_dependencies},
+    // handlers::riderhandler::{delete_rider_dependencies},
     db::establish_connection,
 };
 
@@ -136,18 +136,19 @@ pub async fn create_helmet_handler(
     
     use crate::schema::helmets::dsl::*;
     let connection = &mut establish_connection();
-    let vec = helmets
-        .load::<Helmet>(connection)
-        .expect("Error loading helmets");
-    for helmet in vec.iter() {
-        if helmet.brand == body.brand && helmet.model==helmet.model && helmet.sold.eq(&false) {
-            let response_json = GenericResponse {
-                status: "error".to_string(),
-                message: "Helmet already exists DING DONG".to_string(),
-            };
-            return Err(Custom(Status::BadRequest, Json(response_json)));
-        }
-    }
+    
+    // let vec = helmets
+    //     .load::<Helmet>(connection)
+    //     .expect("Error loading helmets");
+    // for helmet in vec.iter() {
+    //     if helmet.brand == body.brand && helmet.model==helmet.model && helmet.sold.eq(&false) {
+    //         let response_json = GenericResponse {
+    //             status: "error".to_string(),
+    //             message: "Helmet already exists DING DONG".to_string(),
+    //         };
+    //         return Err(Custom(Status::BadRequest, Json(response_json)));
+    //     }
+    // }
 
     let uuid_id = Uuid::new_v4();
     let datetime = Utc::now().naive_utc();
@@ -337,28 +338,28 @@ pub async fn update_helmet_handler(
     }
 }
 
-pub fn delete_helmet_dependencies(helmid: String,data: &State<AppState>) -> Result<usize, diesel::result::Error> {
-    use crate::schema::riders::dsl::*;
-    let connection = &mut establish_connection();
-    let result =riders 
-        .filter(helmet_id.eq(helmid.clone()))
-        .load::<Rider>(connection).expect( "Error loading riders");
+// pub fn delete_helmet_dependencies(helmid: String,data: &State<AppState>) -> Result<usize, diesel::result::Error> {
+//     use crate::schema::riders::dsl::*;
+//     let connection = &mut establish_connection();
+//     let result =riders 
+//         .filter(helmet_id.eq(helmid.clone()))
+//         .load::<Rider>(connection).expect( "Error loading riders");
 
-    // delete all riders that have the bike id that is being deleted
-    for rider in result.clone(){
-        match delete_rider_dependencies(rider.r_id.clone()){
-            Ok(_) =>{
+//     // delete all riders that have the bike id that is being deleted
+//     for rider in result.clone(){
+//         match delete_rider_dependencies(rider.r_id.clone()){
+//             Ok(_) =>{
 
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
-    }
-    let helm_id_clone = helmid.clone();
-    let connection = &mut establish_connection();
-    diesel::delete(riders.filter(helmet_id.eq(helm_id_clone))).execute(connection)
-}
+//             }
+//             Err(e) => {
+//                 return Err(e);
+//             }
+//         }
+//     }
+//     let helm_id_clone = helmid.clone();
+//     let connection = &mut establish_connection();
+//     diesel::delete(riders.filter(helmet_id.eq(helm_id_clone))).execute(connection)
+// }
 
 #[openapi(tag = "Helmets")]
 #[post("/helmets/delete/<helm_id>")]
@@ -371,7 +372,7 @@ pub async fn delete_helmet_handler(
     let connection = &mut establish_connection();
     let helm_id_clone = helm_id.clone();
 
-    /*match diesel::delete(helmets.find(helm_id_clone))
+    match diesel::delete(helmets.find(helm_id_clone))
         .execute(connection){
         Ok(_) => {
             let response_json = GenericResponse {
@@ -389,35 +390,35 @@ pub async fn delete_helmet_handler(
 
             return Err(Custom(Status::NotFound, Json(response_json)));
         }
-    }*/
-
-    match delete_helmet_dependencies(helm_id.clone(),data){
-        Ok(_) => {
-            match diesel::delete(helmets.find(helm_id_clone)).execute(connection){
-                Ok(_) => {
-                    let response_json = GenericResponse {
-                    status: "success".to_string(),
-                    message: "Helmet deleted".to_string(),
-                    };
-                    return Ok(Json(response_json));
-                }
-                Err(_) => {
-                    let response_json = GenericResponse {
-                        status: "error".to_string(),
-                        message: "Helmet not found".to_string(),
-                    };
-                    return Err(Custom(Status::NotFound, Json(response_json)));
-                }
-            }
-        },
-        Err(_) => {
-            let response_json = GenericResponse {
-                status: "error".to_string(),
-                message: "Error at helmet dependency deletion".to_string(),
-            };
-            return Err(Custom(Status::NotFound, Json(response_json)));
-        }
     }
+
+    // match delete_helmet_dependencies(helm_id.clone(),data){
+    //     Ok(_) => {
+    //         match diesel::delete(helmets.find(helm_id_clone)).execute(connection){
+    //             Ok(_) => {
+    //                 let response_json = GenericResponse {
+    //                 status: "success".to_string(),
+    //                 message: "Helmet deleted".to_string(),
+    //                 };
+    //                 return Ok(Json(response_json));
+    //             }
+    //             Err(_) => {
+    //                 let response_json = GenericResponse {
+    //                     status: "error".to_string(),
+    //                     message: "Helmet not found".to_string(),
+    //                 };
+    //                 return Err(Custom(Status::NotFound, Json(response_json)));
+    //             }
+    //         }
+    //     },
+    //     Err(_) => {
+    //         let response_json = GenericResponse {
+    //             status: "error".to_string(),
+    //             message: "Error at helmet dependency deletion".to_string(),
+    //         };
+    //         return Err(Custom(Status::NotFound, Json(response_json)));
+    //     }
+    // }
 
 }
 

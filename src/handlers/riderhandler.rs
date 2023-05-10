@@ -1,7 +1,7 @@
 use crate::{
     model::{Rider,RiderStat,UpdateRider,Bike,Helmet,EventRider,AppState},
     response::{GenericResponse, RiderData, SingleRiderWithGearResponse,RiderListResponse,RiderStatListResponse},
-    handlers::eventriderhandler::delete_eventrider_dependencies,
+    // handlers::eventriderhandler::delete_eventrider_dependencies,
     db::establish_connection,
 };
 
@@ -146,7 +146,7 @@ pub async fn create_rider_handler(
     if !specialization_validation(body.specialization.clone()) || !phone_validation(body.phone.clone()){
         let response_json = GenericResponse {
             status: "error".to_string(),
-            message: "Specialization is not valid".to_string(),
+            message: "Specialization or phone is not valid".to_string(),
         };
         return Err(Custom(Status::BadRequest, Json(response_json)));
     }
@@ -375,28 +375,28 @@ pub async fn update_rider_handler(
     }
 }
 
-pub fn delete_rider_dependencies(rider_id: String) -> Result<usize, diesel::result::Error>{
-    use crate::schema::eventrider::dsl::*;
-    let connection = &mut establish_connection();
-    let result = eventrider
-        .filter(r_id.eq(rider_id.clone()))
-        .load::<EventRider>(connection)
-        .expect( "Error loading riders");
+// pub fn delete_rider_dependencies(rider_id: String) -> Result<usize, diesel::result::Error>{
+//     use crate::schema::eventrider::dsl::*;
+//     let connection = &mut establish_connection();
+//     let result = eventrider
+//         .filter(r_id.eq(rider_id.clone()))
+//         .load::<EventRider>(connection)
+//         .expect( "Error loading riders");
 
-    for event_rider in result{
-       match  delete_eventrider_dependencies(event_rider.e_id.clone(), event_rider.r_id.clone()){
-           Ok(_) => {
-           }
-           Err(_) => {
-                return Err(diesel::result::Error::NotFound);
-           }
-        }
-    }
+//     for event_rider in result{
+//        match  delete_eventrider_dependencies(event_rider.e_id.clone(), event_rider.r_id.clone()){
+//            Ok(_) => {
+//            }
+//            Err(_) => {
+//                 return Err(diesel::result::Error::NotFound);
+//            }
+//         }
+//     }
 
-    let connection = &mut establish_connection();
-    let rider_id_clone = rider_id.clone();
-    diesel::delete(eventrider.filter(r_id.eq(rider_id_clone))).execute(connection)
-}
+//     let connection = &mut establish_connection();
+//     let rider_id_clone = rider_id.clone();
+//     diesel::delete(eventrider.filter(r_id.eq(rider_id_clone))).execute(connection)
+// }
 
 #[openapi(tag = "Riders")]
 #[post("/riders/delete/<rider_id>")]
@@ -409,7 +409,7 @@ pub async fn delete_rider_handler(
     let connection = &mut establish_connection();
     let rider_id_clone = rider_id.clone();
 
-    /* match diesel::delete(riders.find(rider_id_clone))
+     match diesel::delete(riders.find(rider_id_clone))
         .execute(connection){
         Ok(_) => {
             let response_json = GenericResponse {
@@ -427,36 +427,35 @@ pub async fn delete_rider_handler(
 
             return Err(Custom(Status::NotFound, Json(response_json)));
         }
-    }*/
-
-    match delete_rider_dependencies(rider_id.clone()){
-        Ok(_) => {
-            match diesel::delete(riders.find(rider_id_clone)).execute(connection){
-                Ok(_) => {
-                    let response_json = GenericResponse {
-                    status: "success".to_string(),
-                    message: "Rider deleted".to_string(),
-                    };
-                    return Ok(Json(response_json));
-                }
-                Err(_) => {
-                    let response_json = GenericResponse {
-                        status: "error".to_string(),
-                        message: "Rider not found".to_string(),
-                    };
-                    return Err(Custom(Status::NotFound, Json(response_json)));
-                }
-            }
-        },
-        Err(_) => {
-            let response_json = GenericResponse {
-                status: "error".to_string(),
-                message: "Error at rider dependency deletion".to_string(),
-            };
-            return Err(Custom(Status::NotFound, Json(response_json)));
-        }
     }
 
+    // match delete_rider_dependencies(rider_id.clone()){
+    //     Ok(_) => {
+    //         match diesel::delete(riders.find(rider_id_clone)).execute(connection){
+    //             Ok(_) => {
+    //                 let response_json = GenericResponse {
+    //                 status: "success".to_string(),
+    //                 message: "Rider deleted".to_string(),
+    //                 };
+    //                 return Ok(Json(response_json));
+    //             }
+    //             Err(_) => {
+    //                 let response_json = GenericResponse {
+    //                     status: "error".to_string(),
+    //                     message: "Rider not found".to_string(),
+    //                 };
+    //                 return Err(Custom(Status::NotFound, Json(response_json)));
+    //             }
+    //         }
+    //     },
+    //     Err(_) => {
+    //         let response_json = GenericResponse {
+    //             status: "error".to_string(),
+    //             message: "Error at rider dependency deletion".to_string(),
+    //         };
+    //         return Err(Custom(Status::NotFound, Json(response_json)));
+    //     }
+    // }
 
 }
 

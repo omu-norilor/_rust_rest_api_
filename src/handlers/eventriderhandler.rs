@@ -207,11 +207,11 @@ pub async fn update_eventrider_handler(
     }
 }
 
-pub fn delete_eventrider_dependencies (
-    event_id: String,
-    rider_id: String)-> Result<usize, diesel::result::Error>{
-        Ok(1)
-    }
+// pub fn delete_eventrider_dependencies (
+//     event_id: String,
+//     rider_id: String)-> Result<usize, diesel::result::Error>{
+//         Ok(1)
+//     }
 
 #[openapi(tag = "EventRider")]
 #[post("/eventrider/delete?<event_id>&<rider_id>")]

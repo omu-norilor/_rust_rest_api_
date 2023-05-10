@@ -1,7 +1,7 @@
 use crate::{
     model::{Event,Rider,AppState, UpdateEvent,EventRider},
     response::{EventListResponse, EventData,SingleEventWithRidersResponse,GenericResponse},
-    handlers::eventriderhandler::delete_eventrider_dependencies,
+    // handlers::eventriderhandler::delete_eventrider_dependencies,
     db::establish_connection
 };
 
@@ -48,7 +48,7 @@ pub async fn events_list_handler(
 }
 
 #[openapi(tag = "Events")]
-#[post("/events", data = "<body>")]
+#[post("/events/new", data = "<body>")]
 pub async fn create_event_handler(
     mut body: Json<Event>,
     data: &State<AppState>,
@@ -220,31 +220,31 @@ pub async fn update_event_handler(
     }
 }
 
-pub fn delete_event_dependencies(eventid: String) -> Result<usize, diesel::result::Error>{
-    use crate::schema::eventrider::dsl::*;
-    let connection = &mut establish_connection();
-    let result = eventrider
-        .filter(e_id.eq(eventid.clone()))
-        .load::<EventRider>(connection)
-        .expect( "Error loading riders");
+// pub fn delete_event_dependencies(eventid: String) -> Result<usize, diesel::result::Error>{
+//     use crate::schema::eventrider::dsl::*;
+//     let connection = &mut establish_connection();
+//     let result = eventrider
+//         .filter(e_id.eq(eventid.clone()))
+//         .load::<EventRider>(connection)
+//         .expect( "Error loading riders");
 
-    for event_rider in result{
-       match  delete_eventrider_dependencies(event_rider.e_id.clone(), event_rider.r_id.clone()){
-           Ok(_) => {
-           }
-           Err(_) => {
-                return Err(diesel::result::Error::NotFound);
-           }
-        }
-    }
+//     for event_rider in result{
+//        match  delete_eventrider_dependencies(event_rider.e_id.clone(), event_rider.r_id.clone()){
+//            Ok(_) => {
+//            }
+//            Err(_) => {
+//                 return Err(diesel::result::Error::NotFound);
+//            }
+//         }
+//     }
 
-    let connection = &mut establish_connection();
-    let rider_id_clone = eventid.clone();
-    diesel::delete(eventrider.filter(e_id.eq(rider_id_clone))).execute(connection)
-}
+//     let connection = &mut establish_connection();
+//     let rider_id_clone = eventid.clone();
+//     diesel::delete(eventrider.filter(e_id.eq(rider_id_clone))).execute(connection)
+// }
 
 #[openapi(tag = "Events")]
-#[delete("/event/<event_id>")]
+#[post("/event/delete/<event_id>")]
 pub async fn delete_event_handler(
     event_id: String,
     data: &State<AppState>,

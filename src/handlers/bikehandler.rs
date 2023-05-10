@@ -1,7 +1,7 @@
 use crate::{
     model::{Bike,BikeStat, UpdateBike,Rider,AppState},
     response::{BikeData, BikeListResponse, GenericResponse, SingleBikeResponse, SingleBikeWRidersResponse,BikeStatListResponse},
-    handlers::riderhandler::{delete_rider_dependencies},
+    // handlers::riderhandler::{delete_rider_dependencies},
     db::establish_connection,
 };
 use diesel::prelude::*;
@@ -223,19 +223,18 @@ pub async fn create_bike_handler(
     use crate::schema::bikes::dsl::*;
     let connection = &mut establish_connection();
     
-    let vec = bikes
-        .load::<Bike>(connection)
-        .expect("Error loading bikes");
-
-    for bike in vec.iter() {
-        if bike.brand == body.brand && body.model==bike.model && bike.sold.eq(&false){
-            let error = GenericResponse {
-                status: "error".to_string(),
-                message: "Bike already exists".to_string(),
-            };
-            return Err(Custom(Status::Conflict, Json(error)));
-        }
-    }
+    // let vec = bikes
+    //     .load::<Bike>(connection)
+    //     .expect("Error loading bikes");
+    // for bike in vec.iter() {
+    //     if bike.brand == body.brand && body.model==bike.model && bike.sold.eq(&false){
+    //         let error = GenericResponse {
+    //             status: "error".to_string(),
+    //             message: "Bike already exists".to_string(),
+    //         };
+    //         return Err(Custom(Status::Conflict, Json(error)));
+    //     }
+    // }
 
     let uuid_id = Uuid::new_v4();
     let datetime = Utc::now().naive_utc();
@@ -420,30 +419,30 @@ pub async fn update_bike_handler(
     }
 }
 
-pub fn delete_bike_dependencies(bikeid: String,data: &State<AppState>) -> Result<usize, diesel::result::Error> {
-    use crate::schema::riders::dsl::*;
-    let connection = &mut establish_connection();
-    let result =riders 
-        .filter(bike_id.eq(bike_id.clone()))
-        .load::<Rider>(connection).expect( "Error loading riders");
+// pub fn delete_bike_dependencies(bikeid: String,data: &State<AppState>) -> Result<usize, diesel::result::Error> {
+//     use crate::schema::riders::dsl::*;
+//     let connection = &mut establish_connection();
+//     let result =riders 
+//         .filter(bike_id.eq(bike_id.clone()))
+//         .load::<Rider>(connection).expect( "Error loading riders");
 
-    // delete all riders that have the bike id that is being deleted
-    for rider in result.clone(){
-        match delete_rider_dependencies(rider.r_id.clone()){
-            Ok(_) =>{
+//     // delete all riders that have the bike id that is being deleted
+//     for rider in result.clone(){
+//         match delete_rider_dependencies(rider.r_id.clone()){
+//             Ok(_) =>{
 
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
-    }
-    let bike_id_clone = bikeid.clone();
-    let connection = &mut establish_connection();
-    diesel::delete(riders.filter(bike_id.eq(bike_id_clone))).execute(connection)
+//             }
+//             Err(e) => {
+//                 return Err(e);
+//             }
+//         }
+//     }
+//     let bike_id_clone = bikeid.clone();
+//     let connection = &mut establish_connection();
+//     diesel::delete(riders.filter(bike_id.eq(bike_id_clone))).execute(connection)
 
 
-}
+// }
 
 #[openapi(tag = "Bikes")]
 #[post("/bikes/delete/<bike_id>")]
@@ -455,34 +454,50 @@ pub async fn delete_bike_handler(
     use crate::schema::bikes::dsl::*;
     let connection = &mut establish_connection();
     let bike_id_clone = bike_id.clone();
-
-    match delete_bike_dependencies(bike_id.clone(),data){
+    match diesel::delete(bikes.find(bike_id_clone)).execute(connection){
         Ok(_) => {
-            match diesel::delete(bikes.find(bike_id_clone)).execute(connection){
-                Ok(_) => {
-                    let response_json = GenericResponse {
-                    status: "success".to_string(),
-                    message: "Bike deleted".to_string(),
-                    };
-                    return Ok(Json(response_json));
-                }
-                Err(_) => {
-                    let response_json = GenericResponse {
-                        status: "error".to_string(),
-                        message: "Bike not found".to_string(),
-                    };
-                    return Err(Custom(Status::NotFound, Json(response_json)));
-                }
-            }
-        },
+            let response_json = GenericResponse {
+            status: "success".to_string(),
+            message: "Bike deleted".to_string(),
+            };
+            return Ok(Json(response_json));
+        }
         Err(_) => {
             let response_json = GenericResponse {
                 status: "error".to_string(),
-                message: "Error at bike dependency deletion".to_string(),
+                message: "Bike not found".to_string(),
             };
             return Err(Custom(Status::NotFound, Json(response_json)));
         }
     }
+
+    // match delete_bike_dependencies(bike_id.clone(),data){
+    //     Ok(_) => {
+    //         match diesel::delete(bikes.find(bike_id_clone)).execute(connection){
+    //             Ok(_) => {
+    //                 let response_json = GenericResponse {
+    //                 status: "success".to_string(),
+    //                 message: "Bike deleted".to_string(),
+    //                 };
+    //                 return Ok(Json(response_json));
+    //             }
+    //             Err(_) => {
+    //                 let response_json = GenericResponse {
+    //                     status: "error".to_string(),
+    //                     message: "Bike not found".to_string(),
+    //                 };
+    //                 return Err(Custom(Status::NotFound, Json(response_json)));
+    //             }
+    //         }
+    //     },
+    //     Err(_) => {
+    //         let response_json = GenericResponse {
+    //             status: "error".to_string(),
+    //             message: "Error at bike dependency deletion".to_string(),
+    //         };
+    //         return Err(Custom(Status::NotFound, Json(response_json)));
+    //     }
+    // }
 
 
 }
